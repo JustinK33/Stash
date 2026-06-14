@@ -1,0 +1,8 @@
+# Keep generated build artifacts from affecting GitHub language stats.
+build/** linguist-generated=true
+
+# In-source CMake/Qt generated files (if they ever appear).
+CMakeFiles/** linguist-generated=true
+CMakeCache.txt linguist-generated=true
+cmake_install.cmake linguist-generated=true
+*_autogen/** linguist-generated=true

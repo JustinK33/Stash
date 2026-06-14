@@ -1,5 +1,0 @@
-/Users/justin/Projects/QuickNote/build/CMakeFiles/QuickDraft.dir
-/Users/justin/Projects/QuickNote/build/CMakeFiles/edit_cache.dir
-/Users/justin/Projects/QuickNote/build/CMakeFiles/rebuild_cache.dir
-/Users/justin/Projects/QuickNote/build/CMakeFiles/QuickDraft_autogen_timestamp_deps.dir
-/Users/justin/Projects/QuickNote/build/CMakeFiles/QuickDraft_autogen.dir

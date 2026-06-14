@@ -1,4 +1,0 @@
-# Hashes of file build rules.
-5ebe16f42413a5f202420649ea3bc571 CMakeFiles/QuickDraft_autogen
-82ebf3392bdfa54f8d2f459862189857 QuickDraft_autogen/3YJK5W5UP7/qrc_resources.cpp
-09777c2258f691161b2a965c3a297a48 QuickDraft_autogen/timestamp

@@ -1,0 +1,14 @@
+# Build output
+build/
+
+# CMake generated files (in case of in-source builds)
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Qt generated/autogen files
+*_autogen/
+
+# macOS metadata
+.DS_Store
