@@ -18,6 +18,7 @@ private slots:
   void initTestCase();
   void datastorePersistsSnippetsAndShortcut();
   void uiSavesCopiesDeletesAndClearsSnippets();
+  void uiCanToggleVisibilityRepeatedly();
 
 private:
   QPushButton *buttonByText(QWidget &window, const QString &text);
@@ -113,6 +114,31 @@ void QuickNoteTests::uiSavesCopiesDeletesAndClearsSnippets() {
   QTest::mouseClick(clearAllButton, Qt::LeftButton);
   QCoreApplication::processEvents();
   QCOMPARE(window.findChildren<ClipItemWidget *>().size(), 0);
+}
+
+void QuickNoteTests::uiCanToggleVisibilityRepeatedly() {
+  DataStore store;
+  QFile::remove(store.dataPath());
+
+  MainWindow window;
+  window.show();
+  QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+  QMetaObject::invokeMethod(&window, "toggleVisibility");
+  QTest::qWait(180);
+  QVERIFY(!window.isVisible());
+
+  QMetaObject::invokeMethod(&window, "toggleVisibility");
+  QTest::qWait(220);
+  QVERIFY(window.isVisible());
+
+  QMetaObject::invokeMethod(&window, "toggleVisibility");
+  QTest::qWait(180);
+  QVERIFY(!window.isVisible());
+
+  QMetaObject::invokeMethod(&window, "toggleVisibility");
+  QTest::qWait(220);
+  QVERIFY(window.isVisible());
 }
 
 QPushButton *QuickNoteTests::buttonByText(QWidget &window, const QString &text) {

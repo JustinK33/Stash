@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QPointer>
 #include <QVector>
 
 #include "DataStore.h"
@@ -62,7 +63,7 @@ private:
   HotkeyManager *hotkeyManager = nullptr;
   QSystemTrayIcon *trayIcon = nullptr;
   QMenu *trayMenu = nullptr;
-  QPropertyAnimation *opacityAnimation = nullptr;
+  QPointer<QPropertyAnimation> opacityAnimation;
   bool dragging = false;
   QPoint dragStart;
 };

@@ -19,6 +19,20 @@ Run the app from the generated bundle.
 open build/QuickNote.app
 ```
 
+## Install From Terminal
+
+Install QuickNote into `~/Applications` from the terminal.
+
+```bash
+bash scripts/install-macos.sh
+```
+
+Run the installed app.
+
+```bash
+open ~/Applications/QuickNote.app
+```
+
 ## Test
 
 Run the automated Qt tests after building.

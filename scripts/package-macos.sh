@@ -7,7 +7,9 @@ QT_PREFIX="${QT_PREFIX:-$(brew --prefix qt)}"
 QT_PLUGINS_DIR="${QT_PREFIX}/share/qt/plugins"
 
 rm -rf "${APP_PATH}/Contents/PlugIns"
-"${QT_PREFIX}/bin/macdeployqt" "${APP_PATH}" -no-plugins
+if [[ ! -d "${APP_PATH}/Contents/Frameworks/QtCore.framework" ]]; then
+  "${QT_PREFIX}/bin/macdeployqt" "${APP_PATH}" -no-plugins
+fi
 
 mkdir -p "${APP_PATH}/Contents/PlugIns/platforms"
 mkdir -p "${APP_PATH}/Contents/PlugIns/styles"
