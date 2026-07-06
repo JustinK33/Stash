@@ -9,6 +9,9 @@
 #endif
 
 namespace {
+constexpr uint32_t hotkeySignature = 'QKNT';
+constexpr uint32_t hotkeyIdentifier = 1;
+
 QString keyCodeToString(uint32_t keyCode) {
 #ifdef Q_OS_MAC
   struct Entry {
@@ -82,10 +85,10 @@ Hotkey Hotkey::defaultHotkey() {
 #else
   hotkey.keyCode = 0;
 #endif
-  hotkey.fn = true;
+  hotkey.fn = false;
   hotkey.shift = false;
-  hotkey.ctrl = false;
-  hotkey.alt = false;
+  hotkey.ctrl = true;
+  hotkey.alt = true;
   hotkey.cmd = false;
   return hotkey;
 }
@@ -139,6 +142,14 @@ QString Hotkey::toDisplayString() const {
   return parts.join(" + ");
 }
 
+bool Hotkey::isLegacyFnZeroDefault() const {
+#ifdef Q_OS_MAC
+  return keyCode == kVK_ANSI_0 && fn && !shift && !ctrl && !alt && !cmd;
+#else
+  return false;
+#endif
+}
+
 struct HotkeyManager::Impl {
   explicit Impl(HotkeyManager *owner) : owner(owner) {}
 
@@ -149,6 +160,8 @@ struct HotkeyManager::Impl {
 #ifdef Q_OS_MAC
   CFMachPortRef eventTap = nullptr;
   CFRunLoopSourceRef runLoopSource = nullptr;
+  EventHotKeyRef carbonHotkey = nullptr;
+  EventHandlerRef carbonHandler = nullptr;
   bool started = false;
 
   bool matches(CGEventFlags flags, uint32_t keyCode) const {
@@ -190,10 +203,42 @@ struct HotkeyManager::Impl {
     hotkey.fn = flags & kCGEventFlagMaskSecondaryFn;
     return hotkey;
   }
+
+  uint32_t carbonModifiers() const {
+    uint32_t modifiers = 0;
+    if (current.shift) {
+      modifiers |= shiftKey;
+    }
+    if (current.ctrl) {
+      modifiers |= controlKey;
+    }
+    if (current.alt) {
+      modifiers |= optionKey;
+    }
+    if (current.cmd) {
+      modifiers |= cmdKey;
+    }
+    return modifiers;
+  }
 #endif
 };
 
 #ifdef Q_OS_MAC
+static OSStatus carbonHotkeyCallback(EventHandlerCallRef, EventRef event,
+                                     void *refcon) {
+  auto *impl = static_cast<HotkeyManager::Impl *>(refcon);
+  if (!impl || !impl->owner ||
+      GetEventClass(event) != kEventClassKeyboard ||
+      GetEventKind(event) != kEventHotKeyPressed) {
+    return noErr;
+  }
+
+  QMetaObject::invokeMethod(
+      impl->owner, [impl]() { emit impl->owner->activated(); },
+      Qt::QueuedConnection);
+  return noErr;
+}
+
 static CGEventRef hotkeyCallback(CGEventTapProxy, CGEventType type,
                                  CGEventRef event, void *refcon) {
   auto *impl = static_cast<HotkeyManager::Impl *>(refcon);
@@ -251,6 +296,34 @@ bool HotkeyManager::start() {
     return true;
   }
 
+  if (!impl->current.fn) {
+    EventTypeSpec eventType;
+    eventType.eventClass = kEventClassKeyboard;
+    eventType.eventKind = kEventHotKeyPressed;
+
+    if (InstallEventHandler(GetApplicationEventTarget(), carbonHotkeyCallback,
+                            1, &eventType, impl.get(),
+                            &impl->carbonHandler) != noErr) {
+      return false;
+    }
+
+    EventHotKeyID hotkeyId;
+    hotkeyId.signature = hotkeySignature;
+    hotkeyId.id = hotkeyIdentifier;
+    if (RegisterEventHotKey(impl->current.keyCode, impl->carbonModifiers(),
+                            hotkeyId, GetApplicationEventTarget(), 0,
+                            &impl->carbonHotkey) != noErr) {
+      if (impl->carbonHandler) {
+        RemoveEventHandler(impl->carbonHandler);
+        impl->carbonHandler = nullptr;
+      }
+      return false;
+    }
+
+    impl->started = true;
+    return true;
+  }
+
   CGEventMask mask = CGEventMaskBit(kCGEventKeyDown);
   impl->eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap,
                                     kCGEventTapOptionListenOnly, mask,
@@ -278,6 +351,16 @@ void HotkeyManager::stop() {
     return;
   }
 
+  if (impl->carbonHotkey) {
+    UnregisterEventHotKey(impl->carbonHotkey);
+    impl->carbonHotkey = nullptr;
+  }
+
+  if (impl->carbonHandler) {
+    RemoveEventHandler(impl->carbonHandler);
+    impl->carbonHandler = nullptr;
+  }
+
   if (impl->runLoopSource) {
     CFRunLoopRemoveSource(CFRunLoopGetCurrent(), impl->runLoopSource,
                           kCFRunLoopCommonModes);
@@ -295,15 +378,62 @@ void HotkeyManager::stop() {
 #endif
 }
 
-void HotkeyManager::setHotkey(const Hotkey &hotkey) {
+bool HotkeyManager::setHotkey(const Hotkey &hotkey) {
+  const bool wasStarted = impl->started;
+  if (wasStarted) {
+    stop();
+  }
   impl->current = hotkey;
+  if (wasStarted) {
+    return start();
+  }
+  return true;
 }
 
 Hotkey HotkeyManager::hotkey() const {
   return impl->current;
 }
 
-void HotkeyManager::captureNext(
+bool HotkeyManager::captureNext(
     const std::function<void(const Hotkey &)> &callback) {
   impl->captureCallback = callback;
+#ifdef Q_OS_MAC
+  if (!callback) {
+    if (!impl->current.fn) {
+      if (impl->runLoopSource) {
+        CFRunLoopRemoveSource(CFRunLoopGetCurrent(), impl->runLoopSource,
+                              kCFRunLoopCommonModes);
+        CFRelease(impl->runLoopSource);
+        impl->runLoopSource = nullptr;
+      }
+      if (impl->eventTap) {
+        CFMachPortInvalidate(impl->eventTap);
+        CFRelease(impl->eventTap);
+        impl->eventTap = nullptr;
+      }
+    }
+    return true;
+  }
+  if (impl->eventTap) {
+    return true;
+  }
+
+  CGEventMask mask = CGEventMaskBit(kCGEventKeyDown);
+  impl->eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap,
+                                    kCGEventTapOptionListenOnly, mask,
+                                    hotkeyCallback, impl.get());
+  if (!impl->eventTap) {
+    impl->captureCallback = nullptr;
+    return false;
+  }
+
+  impl->runLoopSource =
+      CFMachPortCreateRunLoopSource(kCFAllocatorDefault, impl->eventTap, 0);
+  CFRunLoopAddSource(CFRunLoopGetCurrent(), impl->runLoopSource,
+                     kCFRunLoopCommonModes);
+  CGEventTapEnable(impl->eventTap, true);
+  return true;
+#else
+  return false;
+#endif
 }

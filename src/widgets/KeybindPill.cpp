@@ -11,7 +11,7 @@ KeybindPill::KeybindPill(QWidget *parent) : QWidget(parent) {
   layout->setContentsMargins(10, 4, 10, 4);
   layout->setSpacing(6);
 
-  label = new QLabel("fn + 0", this);
+  label = new QLabel("Control + Option + 0", this);
   label->setObjectName("KeybindLabel");
 
   editButton = new QToolButton(this);

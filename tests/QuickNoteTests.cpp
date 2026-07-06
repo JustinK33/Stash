@@ -17,8 +17,10 @@ class QuickNoteTests : public QObject {
 private slots:
   void initTestCase();
   void datastorePersistsSnippetsAndShortcut();
+  void uiMigratesLegacyFnZeroShortcut();
   void uiSavesCopiesDeletesAndClearsSnippets();
   void uiCanToggleVisibilityRepeatedly();
+  void uiHotkeyToggleRestoresMinimizedWindow();
 
 private:
   QPushButton *buttonByText(QWidget &window, const QString &text);
@@ -59,9 +61,41 @@ void QuickNoteTests::datastorePersistsSnippetsAndShortcut() {
   QVERIFY(store.load(loadedNotes, loadedClips, loadedHotkey, loadedSettings));
   QCOMPARE(loadedClips.size(), 1);
   QCOMPARE(loadedClips.first().text, QString("Saved text"));
-  QVERIFY(loadedHotkey.fn);
+  QVERIFY(!loadedHotkey.fn);
+  QVERIFY(loadedHotkey.ctrl);
+  QVERIFY(loadedHotkey.alt);
   QVERIFY(loadedHotkey.toDisplayString().contains("0"));
   QVERIFY(!loadedSettings.autoHide);
+}
+
+void QuickNoteTests::uiMigratesLegacyFnZeroShortcut() {
+  DataStore store;
+  QFile::remove(store.dataPath());
+
+  QVector<Note> notes;
+  QVector<ClipItem> clips;
+  Hotkey legacyHotkey;
+  legacyHotkey.keyCode = 29;
+  legacyHotkey.fn = true;
+  legacyHotkey.ctrl = false;
+  legacyHotkey.alt = false;
+  legacyHotkey.shift = false;
+  legacyHotkey.cmd = false;
+  Settings settings;
+
+  QVERIFY(store.save(notes, clips, legacyHotkey, settings));
+
+  MainWindow window;
+  Q_UNUSED(window);
+
+  QVector<Note> loadedNotes;
+  QVector<ClipItem> loadedClips;
+  Hotkey loadedHotkey;
+  Settings loadedSettings;
+  QVERIFY(store.load(loadedNotes, loadedClips, loadedHotkey, loadedSettings));
+  QVERIFY(!loadedHotkey.fn);
+  QVERIFY(loadedHotkey.ctrl);
+  QVERIFY(loadedHotkey.alt);
 }
 
 void QuickNoteTests::uiSavesCopiesDeletesAndClearsSnippets() {
@@ -139,6 +173,24 @@ void QuickNoteTests::uiCanToggleVisibilityRepeatedly() {
   QMetaObject::invokeMethod(&window, "toggleVisibility");
   QTest::qWait(220);
   QVERIFY(window.isVisible());
+}
+
+void QuickNoteTests::uiHotkeyToggleRestoresMinimizedWindow() {
+  DataStore store;
+  QFile::remove(store.dataPath());
+
+  MainWindow window;
+  window.show();
+  QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+  window.showMinimized();
+  QCoreApplication::processEvents();
+  QVERIFY(window.isMinimized());
+
+  QMetaObject::invokeMethod(&window, "toggleVisibility");
+  QTest::qWait(220);
+  QVERIFY(window.isVisible());
+  QVERIFY(!window.isMinimized());
 }
 
 QPushButton *QuickNoteTests::buttonByText(QWidget &window, const QString &text) {

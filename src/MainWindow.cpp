@@ -81,10 +81,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   hotkeyManager->setHotkey(hotkey);
   connect(hotkeyManager, &HotkeyManager::activated, this,
           &MainWindow::toggleVisibility);
-  hotkeyManager->start();
+  const bool hotkeyStarted = hotkeyManager->start();
 
   refreshSnippetsUi();
-  setStatus("Ready");
+  setStatus(hotkeyStarted ? "Ready" : "Shortcut unavailable");
 }
 
 void MainWindow::buildUi() {
@@ -297,6 +297,9 @@ void MainWindow::loadData() {
     notes.clear();
     clips.clear();
     store.save(notes, clips, hotkey, settings);
+  } else if (hotkey.isLegacyFnZeroDefault()) {
+    hotkey = Hotkey::defaultHotkey();
+    store.save(notes, clips, hotkey, settings);
   }
 }
 
@@ -365,10 +368,10 @@ void MainWindow::saveSnippetFromInput() {
 }
 
 void MainWindow::toggleVisibility() {
-  if (isVisible()) {
+  if (isVisible() && !isMinimized()) {
     animateHide();
   } else {
-    show();
+    showNormal();
     raise();
     activateWindow();
     noteInput->setFocus();
@@ -393,7 +396,7 @@ void MainWindow::beginHotkeyCapture() {
   hint->setObjectName("SectionValue");
 
   auto *buttonsRow = new QHBoxLayout();
-  auto *resetButton = new QPushButton("Use fn + 0", dialog);
+  auto *resetButton = new QPushButton("Use Control + Option + 0", dialog);
   auto *cancelButton = new QPushButton("Cancel", dialog);
 
   buttonsRow->addWidget(resetButton);
@@ -409,8 +412,9 @@ void MainWindow::beginHotkeyCapture() {
   connect(resetButton, &QPushButton::clicked, this, [this, dialog]() {
     hotkey = Hotkey::defaultHotkey();
     keybindPill->setText(hotkey.toDisplayString());
-    hotkeyManager->setHotkey(hotkey);
+    const bool registered = hotkeyManager->setHotkey(hotkey);
     saveData();
+    setStatus(registered ? "Shortcut saved" : "Shortcut unavailable");
     dialog->accept();
   });
 
@@ -418,13 +422,20 @@ void MainWindow::beginHotkeyCapture() {
     hotkeyManager->captureNext(nullptr);
   });
 
-  hotkeyManager->captureNext([this, dialog](const Hotkey &captured) {
+  const bool canCapture = hotkeyManager->captureNext([this, dialog](const Hotkey &captured) {
     hotkey = captured;
     keybindPill->setText(hotkey.toDisplayString());
-    hotkeyManager->setHotkey(hotkey);
+    const bool registered = hotkeyManager->setHotkey(hotkey);
     saveData();
+    setStatus(registered ? "Shortcut saved" : "Shortcut unavailable");
     dialog->accept();
   });
+
+  if (!canCapture) {
+    setStatus("Shortcut capture needs Accessibility permission");
+    dialog->reject();
+    return;
+  }
 
   dialog->exec();
 }

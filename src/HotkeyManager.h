@@ -18,6 +18,7 @@ struct Hotkey {
   QJsonObject toJson() const;
   static Hotkey fromJson(const QJsonObject &obj);
   QString toDisplayString() const;
+  bool isLegacyFnZeroDefault() const;
 };
 
 class HotkeyManager : public QObject {
@@ -31,10 +32,10 @@ public:
   bool start();
   void stop();
 
-  void setHotkey(const Hotkey &hotkey);
+  bool setHotkey(const Hotkey &hotkey);
   Hotkey hotkey() const;
 
-  void captureNext(const std::function<void(const Hotkey &)> &callback);
+  bool captureNext(const std::function<void(const Hotkey &)> &callback);
 
 signals:
   void activated();

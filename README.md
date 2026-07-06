@@ -43,10 +43,11 @@ ctest --test-dir build --output-on-failure
 
 ## Shortcut
 
-The default global shortcut is `fn + 0`.
+The default global shortcut is `Control + Option + 0`.
 Click the shortcut pill in the app to set your own shortcut.
-Global shortcuts use macOS Accessibility permissions.
-If the shortcut does not work, enable QuickNote in System Settings > Privacy and Security > Accessibility.
+Existing installs that still have the old `fn + 0` default are migrated to `Control + Option + 0`.
+Shortcuts that include `fn` use macOS Accessibility permissions.
+If an `fn` shortcut does not work, enable QuickNote in System Settings > Privacy and Security > Accessibility.
 
 ## Downloadable Build
 

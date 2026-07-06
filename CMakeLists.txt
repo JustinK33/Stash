@@ -26,7 +26,7 @@ target_include_directories(QuickNote PRIVATE src src/widgets)
 target_link_libraries(QuickNote PRIVATE Qt6::Widgets Qt6::Gui Qt6::Core)
 
 if(APPLE)
-  target_link_libraries(QuickNote PRIVATE "-framework ApplicationServices")
+  target_link_libraries(QuickNote PRIVATE "-framework ApplicationServices" "-framework Carbon")
 endif()
 
 enable_testing()
@@ -45,7 +45,7 @@ target_include_directories(QuickNoteTests PRIVATE src src/widgets)
 target_link_libraries(QuickNoteTests PRIVATE Qt6::Widgets Qt6::Gui Qt6::Core Qt6::Test)
 
 if(APPLE)
-  target_link_libraries(QuickNoteTests PRIVATE "-framework ApplicationServices")
+  target_link_libraries(QuickNoteTests PRIVATE "-framework ApplicationServices" "-framework Carbon")
 endif()
 
 add_test(NAME QuickNoteTests COMMAND QuickNoteTests)
