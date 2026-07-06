@@ -5,12 +5,16 @@ Paste text into the input, save it, copy it whenever you need it, and delete or 
 
 ## Build
 
-Install Qt 6, then build with CMake.
+Install Go, then build the app binary.
 
 ```bash
-brew install qt
-cmake -S . -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
-cmake --build build
+go build ./cmd/stash
+```
+
+Create a macOS app bundle and zip.
+
+```bash
+bash scripts/package-macos.sh build/Stash.app Stash-macOS.zip
 ```
 
 Run the app from the generated bundle.
@@ -35,30 +39,41 @@ open ~/Applications/Stash.app
 
 ## Test
 
-Run the automated Qt tests after building.
+Run the automated Go tests.
 
 ```bash
-ctest --test-dir build --output-on-failure
+go test ./...
 ```
 
 ## Shortcut
 
 The default global shortcut is `Control + Option + 0`.
-Click the shortcut pill in the app to set your own shortcut.
-Existing installs that still have the old `fn + 0` default are migrated to `Control + Option + 0`.
-Shortcuts that include `fn` use macOS Accessibility permissions.
-If an `fn` shortcut does not work, enable Stash in System Settings > Privacy and Security > Accessibility.
+Press it once to hide Stash.
+Press it again to bring Stash back.
 
 ## Downloadable Build
 
-The GitHub Actions workflow builds the app on macOS, packages `Stash.app`, and uploads `Stash-macOS.zip` as a workflow artifact.
+The GitHub Actions workflow builds the app on macOS, runs tests, packages `Stash.app`, and uploads `Stash-macOS.zip` as a workflow artifact.
 Download that artifact from a successful workflow run.
-You can create the same zip locally after building.
-
-```bash
-bash scripts/package-macos.sh build/Stash.app Stash-macOS.zip
-```
 
 ## Data
 
 Saved snippets are stored at `~/Library/Application Support/Stash/stash.json`.
+Stash also migrates snippets from the previous app data file when available.
+
+## What I Learned
+
+Small desktop apps still need careful packaging.
+The earlier Qt build could work locally but fail after installation because the bundle loaded two different Qt copies at runtime.
+Moving to Go simplified distribution because the main binary is self-contained and the macOS app bundle is easier to inspect.
+
+Global shortcuts should use the platform shortcut API when possible.
+Listening to every key event is more fragile and can require extra permissions.
+For this app, a Carbon hotkey for `Control + Option + 0` is simpler and more reliable than an `fn` shortcut.
+
+Persistence should be boring and easy to migrate.
+The app stores snippets in a small JSON file and keeps migration code for the old data path so existing saved text is not lost.
+
+Simple UI is a product feature here.
+The useful workflow is only paste, save, copy, delete, and clear.
+Anything beyond that made the app feel heavier than the job it needed to do.

@@ -15,17 +15,19 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install Qt
-        run: brew install qt
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
 
-      - name: Configure
-        run: cmake -S . -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
+      - name: Download dependencies
+        run: go mod download
 
       - name: Build
-        run: cmake --build build --config Release
+        run: go build ./cmd/stash
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: go test ./...
 
       - name: Package downloadable app
         run: bash scripts/package-macos.sh build/Stash.app Stash-macOS.zip
