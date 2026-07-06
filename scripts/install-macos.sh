@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="QuickNote.app"
+APP_NAME="Stash.app"
 BUILD_DIR="${BUILD_DIR:-build}"
 INSTALL_DIR="${INSTALL_DIR:-${HOME}/Applications}"
 APP_PATH="${BUILD_DIR}/${APP_NAME}"
@@ -9,10 +9,10 @@ QT_PREFIX="${QT_PREFIX:-$(brew --prefix qt)}"
 
 if [[ ! -d "${APP_PATH}" ]]; then
   cmake -S . -B "${BUILD_DIR}" -DCMAKE_PREFIX_PATH="${QT_PREFIX}"
-  cmake --build "${BUILD_DIR}" --target QuickNote
+  cmake --build "${BUILD_DIR}" --target Stash
 fi
 
-bash scripts/package-macos.sh "${APP_PATH}" QuickNote-macOS.zip
+bash scripts/package-macos.sh "${APP_PATH}" Stash-macOS.zip
 
 mkdir -p "${INSTALL_DIR}"
 rm -rf "${INSTALL_DIR:?}/${APP_NAME}"

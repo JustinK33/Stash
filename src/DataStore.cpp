@@ -14,7 +14,7 @@ QString DataStore::dataPath() const {
   if (!dir.exists()) {
     dir.mkpath(".");
   }
-  return dir.filePath("quicknote.json");
+  return dir.filePath("stash.json");
 }
 
 bool DataStore::load(QVector<Note> &notes, QVector<ClipItem> &clips,

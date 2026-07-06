@@ -1,5 +1,6 @@
 # Build output
 build/
+Stash-macOS.zip
 QuickNote-macOS.zip
 
 # CMake generated files (in case of in-source builds)

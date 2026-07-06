@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(QuickNote LANGUAGES CXX)
+project(Stash LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,19 +20,19 @@ set(SOURCES
   resources/resources.qrc
 )
 
-qt_add_executable(QuickNote MACOSX_BUNDLE ${SOURCES})
+qt_add_executable(Stash MACOSX_BUNDLE ${SOURCES})
 
-target_include_directories(QuickNote PRIVATE src src/widgets)
-target_link_libraries(QuickNote PRIVATE Qt6::Widgets Qt6::Gui Qt6::Core)
+target_include_directories(Stash PRIVATE src src/widgets)
+target_link_libraries(Stash PRIVATE Qt6::Widgets Qt6::Gui Qt6::Core)
 
 if(APPLE)
-  target_link_libraries(QuickNote PRIVATE "-framework ApplicationServices" "-framework Carbon")
+  target_link_libraries(Stash PRIVATE "-framework ApplicationServices" "-framework Carbon")
 endif()
 
 enable_testing()
 
-qt_add_executable(QuickNoteTests
-  tests/QuickNoteTests.cpp
+qt_add_executable(StashTests
+  tests/StashTests.cpp
   src/MainWindow.cpp
   src/DataStore.cpp
   src/HotkeyManager.cpp
@@ -41,11 +41,11 @@ qt_add_executable(QuickNoteTests
   resources/resources.qrc
 )
 
-target_include_directories(QuickNoteTests PRIVATE src src/widgets)
-target_link_libraries(QuickNoteTests PRIVATE Qt6::Widgets Qt6::Gui Qt6::Core Qt6::Test)
+target_include_directories(StashTests PRIVATE src src/widgets)
+target_link_libraries(StashTests PRIVATE Qt6::Widgets Qt6::Gui Qt6::Core Qt6::Test)
 
 if(APPLE)
-  target_link_libraries(QuickNoteTests PRIVATE "-framework ApplicationServices" "-framework Carbon")
+  target_link_libraries(StashTests PRIVATE "-framework ApplicationServices" "-framework Carbon")
 endif()
 
-add_test(NAME QuickNoteTests COMMAND QuickNoteTests)
+add_test(NAME StashTests COMMAND StashTests)

@@ -28,10 +28,10 @@ jobs:
         run: ctest --test-dir build --output-on-failure
 
       - name: Package downloadable app
-        run: bash scripts/package-macos.sh build/QuickNote.app QuickNote-macOS.zip
+        run: bash scripts/package-macos.sh build/Stash.app Stash-macOS.zip
 
       - name: Upload app artifact
         uses: actions/upload-artifact@v4
         with:
-          name: QuickNote-macOS
-          path: QuickNote-macOS.zip
+          name: Stash-macOS
+          path: Stash-macOS.zip

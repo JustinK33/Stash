@@ -63,7 +63,7 @@ QIcon createTrayIcon() {
 } // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
-  setWindowTitle("QuickNote");
+  setWindowTitle("Stash");
   resize(560, 620);
   setMinimumSize(420, 520);
   setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
@@ -114,7 +114,7 @@ void MainWindow::buildUi() {
   topLayout->setContentsMargins(18, 0, 18, 0);
   topLayout->setSpacing(10);
 
-  auto *title = new QLabel("QuickNote", topBar);
+  auto *title = new QLabel("Stash", topBar);
   title->setObjectName("Title");
 
   keybindPill = new KeybindPill(topBar);
@@ -390,7 +390,7 @@ void MainWindow::beginHotkeyCapture() {
   layout->setContentsMargins(18, 18, 18, 18);
   layout->setSpacing(12);
 
-  auto *title = new QLabel("Press the shortcut to open QuickNote", dialog);
+  auto *title = new QLabel("Press the shortcut to open Stash", dialog);
   title->setObjectName("SectionLabel");
   auto *hint = new QLabel("Waiting for input", dialog);
   hint->setObjectName("SectionValue");
@@ -484,7 +484,7 @@ void MainWindow::createTray() {
   }
 
   trayMenu = new QMenu(this);
-  auto *toggleAction = trayMenu->addAction("Show/Hide QuickNote");
+  auto *toggleAction = trayMenu->addAction("Show/Hide Stash");
   trayMenu->addSeparator();
   auto *autoHideAction = trayMenu->addAction("Auto-hide on focus loss");
   autoHideAction->setCheckable(true);
@@ -493,7 +493,7 @@ void MainWindow::createTray() {
   auto *quitAction = trayMenu->addAction("Quit");
 
   trayIcon = new QSystemTrayIcon(createTrayIcon(), this);
-  trayIcon->setToolTip("QuickNote");
+  trayIcon->setToolTip("Stash");
   trayIcon->setContextMenu(trayMenu);
   trayIcon->show();
 

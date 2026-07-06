@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_PATH="${1:-build/QuickNote.app}"
-ZIP_PATH="${2:-QuickNote-macOS.zip}"
+APP_PATH="${1:-build/Stash.app}"
+ZIP_PATH="${2:-Stash-macOS.zip}"
 QT_PREFIX="${QT_PREFIX:-$(brew --prefix qt)}"
 QTBASE_PREFIX="${QTBASE_PREFIX:-$(brew --prefix qtbase)}"
 QT_PLUGINS_DIR="${QT_PREFIX}/share/qt/plugins"
-APP_BINARY="${APP_PATH}/Contents/MacOS/QuickNote"
+APP_BINARY="${APP_PATH}/Contents/MacOS/Stash"
 
 rewrite_dependency() {
   local binary="$1"

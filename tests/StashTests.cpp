@@ -11,7 +11,7 @@
 #include "MainWindow.h"
 #include "widgets/ClipItemWidget.h"
 
-class QuickNoteTests : public QObject {
+class StashTests : public QObject {
   Q_OBJECT
 
 private slots:
@@ -26,17 +26,17 @@ private:
   QPushButton *buttonByText(QWidget &window, const QString &text);
 };
 
-void QuickNoteTests::initTestCase() {
+void StashTests::initTestCase() {
   QStandardPaths::setTestModeEnabled(true);
-  QCoreApplication::setApplicationName("QuickNoteTests");
-  QCoreApplication::setOrganizationName("QuickNoteTests");
-  QCoreApplication::setOrganizationDomain("quicknote.test");
+  QCoreApplication::setApplicationName("StashTests");
+  QCoreApplication::setOrganizationName("StashTests");
+  QCoreApplication::setOrganizationDomain("stash.test");
 
   DataStore store;
   QFile::remove(store.dataPath());
 }
 
-void QuickNoteTests::datastorePersistsSnippetsAndShortcut() {
+void StashTests::datastorePersistsSnippetsAndShortcut() {
   DataStore store;
   QFile::remove(store.dataPath());
 
@@ -68,7 +68,7 @@ void QuickNoteTests::datastorePersistsSnippetsAndShortcut() {
   QVERIFY(!loadedSettings.autoHide);
 }
 
-void QuickNoteTests::uiMigratesLegacyFnZeroShortcut() {
+void StashTests::uiMigratesLegacyFnZeroShortcut() {
   DataStore store;
   QFile::remove(store.dataPath());
 
@@ -98,7 +98,7 @@ void QuickNoteTests::uiMigratesLegacyFnZeroShortcut() {
   QVERIFY(loadedHotkey.alt);
 }
 
-void QuickNoteTests::uiSavesCopiesDeletesAndClearsSnippets() {
+void StashTests::uiSavesCopiesDeletesAndClearsSnippets() {
   DataStore store;
   QFile::remove(store.dataPath());
 
@@ -150,7 +150,7 @@ void QuickNoteTests::uiSavesCopiesDeletesAndClearsSnippets() {
   QCOMPARE(window.findChildren<ClipItemWidget *>().size(), 0);
 }
 
-void QuickNoteTests::uiCanToggleVisibilityRepeatedly() {
+void StashTests::uiCanToggleVisibilityRepeatedly() {
   DataStore store;
   QFile::remove(store.dataPath());
 
@@ -175,7 +175,7 @@ void QuickNoteTests::uiCanToggleVisibilityRepeatedly() {
   QVERIFY(window.isVisible());
 }
 
-void QuickNoteTests::uiHotkeyToggleRestoresMinimizedWindow() {
+void StashTests::uiHotkeyToggleRestoresMinimizedWindow() {
   DataStore store;
   QFile::remove(store.dataPath());
 
@@ -193,7 +193,7 @@ void QuickNoteTests::uiHotkeyToggleRestoresMinimizedWindow() {
   QVERIFY(!window.isMinimized());
 }
 
-QPushButton *QuickNoteTests::buttonByText(QWidget &window, const QString &text) {
+QPushButton *StashTests::buttonByText(QWidget &window, const QString &text) {
   const auto buttons = window.findChildren<QPushButton *>();
   for (auto *button : buttons) {
     if (button->text() == text) {
@@ -203,5 +203,5 @@ QPushButton *QuickNoteTests::buttonByText(QWidget &window, const QString &text) 
   return nullptr;
 }
 
-QTEST_MAIN(QuickNoteTests)
-#include "QuickNoteTests.moc"
+QTEST_MAIN(StashTests)
+#include "StashTests.moc"
