@@ -3,7 +3,6 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QToolButton>
-#include <QIcon>
 
 KeybindPill::KeybindPill(QWidget *parent) : QWidget(parent) {
   setObjectName("KeybindPill");
@@ -12,13 +11,12 @@ KeybindPill::KeybindPill(QWidget *parent) : QWidget(parent) {
   layout->setContentsMargins(10, 4, 10, 4);
   layout->setSpacing(6);
 
-  label = new QLabel("fn + Space", this);
+  label = new QLabel("fn + 0", this);
   label->setObjectName("KeybindLabel");
 
   editButton = new QToolButton(this);
   editButton->setObjectName("IconButton");
-  editButton->setIcon(QIcon(":/icons/edit.svg"));
-  editButton->setIconSize(QSize(12, 12));
+  editButton->setText("Edit");
   editButton->setAutoRaise(true);
 
   layout->addWidget(label);

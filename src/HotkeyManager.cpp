@@ -78,7 +78,7 @@ QString keyCodeToString(uint32_t keyCode) {
 Hotkey Hotkey::defaultHotkey() {
   Hotkey hotkey;
 #ifdef Q_OS_MAC
-  hotkey.keyCode = kVK_Space;
+  hotkey.keyCode = kVK_ANSI_0;
 #else
   hotkey.keyCode = 0;
 #endif

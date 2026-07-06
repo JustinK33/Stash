@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-test-package:
+    name: Build, test, and package macOS app
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        run: brew install qt
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package downloadable app
+        run: bash scripts/package-macos.sh build/QuickNote.app QuickNote-macOS.zip
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuickNote-macOS
+          path: QuickNote-macOS.zip

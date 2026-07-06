@@ -15,9 +15,11 @@ public:
 
 signals:
   void copyClicked(const QString &text);
+  void deleteClicked(const QString &text);
 
 private:
   const QString clipText;
   QLabel *textLabel = nullptr;
   QPushButton *copyButton = nullptr;
+  QPushButton *deleteButton = nullptr;
 };

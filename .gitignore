@@ -1,5 +1,6 @@
 # Build output
 build/
+QuickNote-macOS.zip
 
 # CMake generated files (in case of in-source builds)
 CMakeFiles/

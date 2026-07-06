@@ -1,28 +1,49 @@
-# QuickDraft
+# QuickNote
 
-QuickDraft is a lightweight desktop popup for fast notes and clipboard history.
+QuickNote is a small macOS desktop app for saving text snippets that you want to copy again later.
+Paste text into the input, save it, copy it whenever you need it, and delete or clear saved snippets when they are no longer useful.
 
-## Build (macOS, Qt 6)
+## Build
+
+Install Qt 6, then build with CMake.
 
 ```bash
 brew install qt
 cmake -S . -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
 cmake --build build
-open build/QuickDraft.app
 ```
 
-## Global hotkey
+Run the app from the generated bundle.
 
-Default: fn + Space. Click the keybind pill to change it.
+```bash
+open build/QuickNote.app
+```
 
-Global hotkeys use macOS Accessibility permissions. If the shortcut does not work, enable QuickDraft in System Settings > Privacy and Security > Accessibility.
+## Test
 
-## Menu bar + search
+Run the automated Qt tests after building.
 
-QuickDraft adds a menu bar icon with quick actions (show/hide, new note, auto-hide toggle, auto-pin #pin tags).
-Use the search field to filter notes or type #tag to filter by tag. Notes with #pin are auto-pinned when enabled.
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+## Shortcut
+
+The default global shortcut is `fn + 0`.
+Click the shortcut pill in the app to set your own shortcut.
+Global shortcuts use macOS Accessibility permissions.
+If the shortcut does not work, enable QuickNote in System Settings > Privacy and Security > Accessibility.
+
+## Downloadable Build
+
+The GitHub Actions workflow builds the app on macOS, packages `QuickNote.app`, and uploads `QuickNote-macOS.zip` as a workflow artifact.
+Download that artifact from a successful workflow run.
+You can create the same zip locally after building.
+
+```bash
+bash scripts/package-macos.sh build/QuickNote.app QuickNote-macOS.zip
+```
 
 ## Data
 
-Notes and clipboard history are stored at:
-~/Library/Application Support/QuickDraft/quickdraft.json
+Saved snippets are stored at `~/Library/Application Support/QuickNote/quicknote.json`.

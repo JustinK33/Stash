@@ -4,9 +4,9 @@
 
 int main(int argc, char *argv[]) {
   QApplication app(argc, argv);
-  app.setApplicationName("QuickDraft");
-  app.setOrganizationName("QuickDraft");
-  app.setOrganizationDomain("quickdraft.local");
+  app.setApplicationName("QuickNote");
+  app.setOrganizationName("QuickNote");
+  app.setOrganizationDomain("quicknote.local");
   app.setQuitOnLastWindowClosed(false);
 
   MainWindow window;

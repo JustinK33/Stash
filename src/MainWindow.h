@@ -29,8 +29,7 @@ protected:
   void focusOutEvent(QFocusEvent *event) override;
 
 private slots:
-  void addNoteFromInput();
-  void onClipboardChanged();
+  void saveSnippetFromInput();
   void toggleVisibility();
   void beginHotkeyCapture();
   void saveData();
@@ -38,16 +37,13 @@ private slots:
 private:
   void buildUi();
   void applyTheme();
-  void refreshNotesUi();
-  void refreshClipsUi();
+  void refreshSnippetsUi();
   void loadData();
-  void updateTagFilter();
   void createTray();
   void animateShow();
   void animateHide();
   void animateFadeIn(QWidget *widget, int durationMs);
   void setStatus(const QString &text);
-  void sortNotes();
 
   DataStore store;
   QVector<Note> notes;
@@ -56,17 +52,11 @@ private:
   Settings settings;
 
   QTextEdit *noteInput = nullptr;
-  QLabel *notesCountLabel = nullptr;
   QLabel *clipsCountLabel = nullptr;
   QLabel *statusLabel = nullptr;
   QWidget *topBar = nullptr;
   KeybindPill *keybindPill = nullptr;
-  QLineEdit *searchInput = nullptr;
-  QComboBox *tagFilter = nullptr;
-  QVBoxLayout *notesListLayout = nullptr;
   QVBoxLayout *clipsListLayout = nullptr;
-  QString editingId;
-  QString lastAddedNoteId;
   QString lastAddedClipText;
   QClipboard *clipboard = nullptr;
   HotkeyManager *hotkeyManager = nullptr;
