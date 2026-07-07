@@ -8,7 +8,14 @@ Paste text into the input, save it, copy it whenever you need it, and delete or 
 Download `Stash-macOS.zip` from the latest GitHub Release.
 Unzip it, move `Stash.app` into Applications, then open it.
 Users do not need Go, Homebrew, or a terminal to install the release build.
-If macOS blocks the app because it is not notarized yet, right-click `Stash.app`, choose Open, then confirm Open.
+If macOS blocks the app because it is not notarized yet, run this once:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Stash.app
+open /Applications/Stash.app
+```
+
+You can also right-click `Stash.app`, choose Open, then confirm Open.
 
 ## Use
 
