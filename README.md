@@ -3,6 +3,12 @@
 Stash is a small macOS desktop app for saving text snippets that you want to copy again later.
 Paste text into the input, save it, copy it whenever you need it, and delete or clear saved snippets when they are no longer useful.
 
+## Install
+
+Download `Stash-macOS.zip` from the latest GitHub Release.
+Unzip it, move `Stash.app` into Applications, then open it.
+If macOS blocks the app because it is not notarized yet, right-click `Stash.app`, choose Open, then confirm Open.
+
 ## Build
 
 Install Go, then build the app binary.
@@ -55,8 +61,19 @@ Choose one key and at least one modifier.
 
 ## Downloadable Build
 
-The GitHub Actions workflow builds the app on macOS, runs tests, packages `Stash.app`, and uploads `Stash-macOS.zip` as a workflow artifact.
-Download that artifact from a successful workflow run.
+The CI workflow builds the app on macOS, runs tests, packages `Stash.app`, and uploads `Stash-macOS.zip` as a workflow artifact.
+The release workflow publishes `Stash-macOS.zip` to GitHub Releases when a version tag is pushed.
+
+Create a release by pushing a tag.
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The current release build is ad-hoc signed but not notarized.
+The most professional macOS distribution path is a Developer ID signed and notarized DMG.
+That requires an Apple Developer account and signing credentials stored as GitHub Actions secrets.
 
 ## Data
 

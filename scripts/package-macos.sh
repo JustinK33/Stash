@@ -4,6 +4,8 @@ set -euo pipefail
 APP_PATH="${1:-build/Stash.app}"
 ZIP_PATH="${2:-Stash-macOS.zip}"
 APP_BINARY="${APP_PATH}/Contents/MacOS/Stash"
+VERSION="${VERSION:-1.0.0}"
+BUILD_NUMBER="${BUILD_NUMBER:-1}"
 
 rm -rf "${APP_PATH}" "${ZIP_PATH}"
 mkdir -p "${APP_PATH}/Contents/MacOS"
@@ -11,7 +13,7 @@ mkdir -p "${APP_PATH}/Contents/Resources"
 
 go build -trimpath -ldflags="-s -w" -o "${APP_BINARY}" ./cmd/stash
 
-cat > "${APP_PATH}/Contents/Info.plist" <<'PLIST'
+cat > "${APP_PATH}/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -30,9 +32,9 @@ cat > "${APP_PATH}/Contents/Info.plist" <<'PLIST'
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>1.0</string>
+  <string>${VERSION}</string>
   <key>CFBundleVersion</key>
-  <string>1</string>
+  <string>${BUILD_NUMBER}</string>
   <key>LSMinimumSystemVersion</key>
   <string>11.0</string>
   <key>NSHighResolutionCapable</key>
