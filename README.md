@@ -50,6 +50,8 @@ go test ./...
 The default global shortcut is `Control + Option + 0`.
 Press it once to hide Stash.
 Press it again to bring Stash back.
+Click the shortcut button in the top-right corner to change it.
+Choose one key and at least one modifier.
 
 ## Downloadable Build
 

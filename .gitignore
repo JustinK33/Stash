@@ -1,7 +1,7 @@
 # Build output
 build/
 Stash-macOS.zip
-stash
+/stash
 
 # CMake generated files (in case of in-source builds)
 CMakeFiles/

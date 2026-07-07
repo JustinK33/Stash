@@ -21,16 +21,26 @@ func TestStoreSavesLoadsAndDeduplicatesSnippets(t *testing.T) {
 		t.Fatalf("expected duplicate to move to top, got %q", snippets[0].Text)
 	}
 
-	if err := stashStore.Save(snippets); err != nil {
+	settings := DefaultSettings()
+	settings.Shortcut.Key = "S"
+	settings.Shortcut.Command = true
+	settings.Shortcut.Control = false
+	settings.Shortcut.Option = false
+
+	if err := stashStore.Save(File{Snippets: snippets, Settings: settings}); err != nil {
 		t.Fatal(err)
 	}
 
-	loaded, err := stashStore.Load()
+	loadedFile, err := stashStore.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
+	loaded := loadedFile.Snippets
 	if len(loaded) != 2 || loaded[0].Text != "first" || loaded[1].Text != "second" {
 		t.Fatalf("unexpected snippets: %#v", loaded)
+	}
+	if loadedFile.Settings.Shortcut.Display() != "Command + S" {
+		t.Fatalf("unexpected shortcut: %s", loadedFile.Settings.Shortcut.Display())
 	}
 }
 
@@ -52,12 +62,16 @@ func TestStoreMigratesLegacyClips(t *testing.T) {
 	}
 
 	stashStore := NewAt(currentPath)
-	loaded, err := stashStore.Load()
+	loadedFile, err := stashStore.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
+	loaded := loadedFile.Snippets
 	if len(loaded) != 2 || loaded[0].Text != "legacy one" || loaded[1].Text != "legacy two" {
 		t.Fatalf("unexpected migrated snippets: %#v", loaded)
+	}
+	if loadedFile.Settings.Shortcut.Display() != "Control + Option + 0" {
+		t.Fatalf("unexpected migrated shortcut: %s", loadedFile.Settings.Shortcut.Display())
 	}
 	if _, err := os.Stat(currentPath); err != nil {
 		t.Fatalf("expected migrated file to be saved: %v", err)

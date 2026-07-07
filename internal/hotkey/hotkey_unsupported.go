@@ -2,9 +2,13 @@
 
 package hotkey
 
-import "errors"
+import (
+	"errors"
 
-func Register(onPressed func()) error {
+	"stash/internal/keybind"
+)
+
+func Register(binding keybind.Binding, onPressed func()) error {
 	return errors.New("global shortcuts are only implemented on macOS")
 }
 

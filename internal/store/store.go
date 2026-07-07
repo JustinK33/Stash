@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"stash/internal/keybind"
 )
 
 const (
@@ -23,6 +25,11 @@ type Snippet struct {
 
 type File struct {
 	Snippets []Snippet `json:"snippets"`
+	Settings Settings  `json:"settings"`
+}
+
+type Settings struct {
+	Shortcut keybind.Binding `json:"shortcut"`
 }
 
 type Store struct {
@@ -46,36 +53,41 @@ func (store *Store) Path() string {
 	return store.path
 }
 
-func (store *Store) Load() ([]Snippet, error) {
-	snippets, err := store.loadFromPath(store.path)
+func DefaultSettings() Settings {
+	return Settings{Shortcut: keybind.Default()}
+}
+
+func (store *Store) Load() (File, error) {
+	file, err := store.loadFromPath(store.path)
 	if err == nil {
-		return snippets, nil
+		return file, nil
 	}
 	if !errors.Is(err, os.ErrNotExist) {
-		return nil, err
+		return File{}, err
 	}
 
 	legacyPaths := legacyPaths(store.path)
 	for _, legacyPath := range legacyPaths {
-		snippets, legacyErr := store.loadFromPath(legacyPath)
+		file, legacyErr := store.loadFromPath(legacyPath)
 		if legacyErr == nil {
-			_ = store.Save(snippets)
-			return snippets, nil
+			_ = store.Save(file)
+			return file, nil
 		}
 		if !errors.Is(legacyErr, os.ErrNotExist) {
-			return nil, legacyErr
+			return File{}, legacyErr
 		}
 	}
 
-	return []Snippet{}, nil
+	return File{Settings: DefaultSettings()}, nil
 }
 
-func (store *Store) Save(snippets []Snippet) error {
+func (store *Store) Save(file File) error {
 	if err := os.MkdirAll(filepath.Dir(store.path), 0o755); err != nil {
 		return err
 	}
 
-	file := File{Snippets: snippets}
+	file.Snippets = normalize(file.Snippets)
+	file.Settings = normalizeSettings(file.Settings)
 	data, err := json.MarshalIndent(file, "", "  ")
 	if err != nil {
 		return err
@@ -104,20 +116,22 @@ func Delete(snippets []Snippet, text string) []Snippet {
 	})
 }
 
-func (store *Store) loadFromPath(path string) ([]Snippet, error) {
+func (store *Store) loadFromPath(path string) (File, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return File{}, err
 	}
 
 	var file File
 	if err := json.Unmarshal(data, &file); err == nil && file.Snippets != nil {
-		return normalize(file.Snippets), nil
+		file.Snippets = normalize(file.Snippets)
+		file.Settings = normalizeSettings(file.Settings)
+		return file, nil
 	}
 
 	var legacy legacyFile
 	if err := json.Unmarshal(data, &legacy); err != nil {
-		return nil, err
+		return File{}, err
 	}
 
 	snippets := make([]Snippet, 0, len(legacy.Clips))
@@ -132,7 +146,10 @@ func (store *Store) loadFromPath(path string) ([]Snippet, error) {
 			CreatedAt: createdAt,
 		})
 	}
-	return normalize(snippets), nil
+	return File{
+		Snippets: normalize(snippets),
+		Settings: DefaultSettings(),
+	}, nil
 }
 
 func normalize(snippets []Snippet) []Snippet {
@@ -155,6 +172,14 @@ func normalize(snippets []Snippet) []Snippet {
 	}
 
 	return normalized
+}
+
+func normalizeSettings(settings Settings) Settings {
+	settings.Shortcut = settings.Shortcut.Normalize()
+	if !settings.Shortcut.HasModifier() {
+		settings.Shortcut = keybind.Default()
+	}
+	return settings
 }
 
 func legacyPaths(currentPath string) []string {
