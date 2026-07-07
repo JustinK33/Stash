@@ -24,7 +24,7 @@ cat > "${APP_PATH}/Contents/Info.plist" <<PLIST
   <key>CFBundleExecutable</key>
   <string>Stash</string>
   <key>CFBundleIdentifier</key>
-  <string>local.stash</string>
+  <string>com.justink33.stash</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>

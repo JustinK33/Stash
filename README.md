@@ -7,7 +7,17 @@ Paste text into the input, save it, copy it whenever you need it, and delete or 
 
 Download `Stash-macOS.zip` from the latest GitHub Release.
 Unzip it, move `Stash.app` into Applications, then open it.
+Users do not need Go, Homebrew, or a terminal to install the release build.
 If macOS blocks the app because it is not notarized yet, right-click `Stash.app`, choose Open, then confirm Open.
+
+## Use
+
+Paste text into the input and click Save.
+Click Copy on any saved snippet to put it back on your clipboard.
+Click Delete for one snippet, or Clear All for everything.
+The default global shortcut is `Control + Option + 0`.
+Click the shortcut button in the top-right corner to change it.
+Choose one key and at least one modifier.
 
 ## Build
 
@@ -51,22 +61,15 @@ Run the automated Go tests.
 go test ./...
 ```
 
-## Shortcut
-
-The default global shortcut is `Control + Option + 0`.
-Press it once to hide Stash.
-Press it again to bring Stash back.
-Click the shortcut button in the top-right corner to change it.
-Choose one key and at least one modifier.
-
 ## Downloadable Build
 
 The CI workflow builds the app on macOS, runs tests, packages `Stash.app`, and uploads `Stash-macOS.zip` as a workflow artifact.
 The release workflow publishes `Stash-macOS.zip` to GitHub Releases when a version tag is pushed.
 
-Create a release by pushing a tag.
+Create a release by pushing `main`, then pushing a version tag.
 
 ```bash
+git push origin main
 git tag v1.0.0
 git push origin v1.0.0
 ```

@@ -44,7 +44,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fyneApp := app.NewWithID("local.stash")
+	fyneApp := app.NewWithID("com.justink33.stash")
 	fyneApp.Settings().SetTheme(stashTheme{})
 
 	window := fyneApp.NewWindow("Stash")
