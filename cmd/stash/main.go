@@ -62,9 +62,6 @@ func main() {
 	}
 
 	window.SetContent(ui.build())
-	window.SetCloseIntercept(func() {
-		ui.hide()
-	})
 	fyneApp.Lifecycle().SetOnEnteredForeground(func() {
 		fyne.Do(ui.show)
 	})

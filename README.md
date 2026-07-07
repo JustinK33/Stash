@@ -18,6 +18,8 @@ Click Delete for one snippet, or Clear All for everything.
 The default global shortcut is `Control + Option + 0`.
 Click the shortcut button in the top-right corner to change it.
 Choose one key and at least one modifier.
+Use the global shortcut to hide or bring back the window.
+Close the window or press `Command + Q` to quit Stash.
 
 ## Build
 
