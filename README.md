@@ -1,7 +1,7 @@
 # Stash
 
-Stash is a small macOS desktop app for saving text snippets that you want to copy again later.
-Paste text into the input, save it, copy it whenever you need it, and delete or clear saved snippets when they are no longer useful.
+Stash is a small macOS desktop app for saving text snippets and images that you want to copy again later.
+Paste text or images, drag image files into the app, and copy saved content whenever you need it.
 
 ## Install
 
@@ -21,7 +21,9 @@ You can also right-click `Stash.app`, choose Open, then confirm Open.
 
 Paste text into the input and click Save.
 Click Copy on any saved snippet to put it back on your clipboard.
-Click Delete for one snippet, or Clear All for everything.
+Open the Images tab and paste an image with `Command + V`, click Paste Image, or drag PNG, JPEG, and GIF files into the window.
+Click Copy on a saved image to put the image back on your clipboard.
+Text and images have separate delete and clear controls.
 The default global shortcut is `Control + Option + 0`.
 Click the shortcut button in the top-right corner to change it.
 Choose one key and at least one modifier.
@@ -89,7 +91,8 @@ That requires an Apple Developer account and signing credentials stored as GitHu
 
 ## Data
 
-Saved snippets are stored at `~/Library/Application Support/Stash/stash.json`.
+Saved metadata is stored at `~/Library/Application Support/Stash/stash.json`.
+Managed image files are stored under `~/Library/Application Support/Stash/images/`.
 Stash also migrates snippets from the previous app data file when available.
 
 ## What I Learned

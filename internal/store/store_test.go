@@ -1,6 +1,10 @@
 package store
 
 import (
+	"bytes"
+	"image"
+	"image/color"
+	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
@@ -76,4 +80,112 @@ func TestStoreMigratesLegacyClips(t *testing.T) {
 	if _, err := os.Stat(currentPath); err != nil {
 		t.Fatalf("expected migrated file to be saved: %v", err)
 	}
+}
+
+func TestStoreImportsLoadsAndDeletesManagedImage(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Stash", FileName)
+	stashStore := NewAt(path)
+	file := File{Settings: DefaultSettings()}
+	imageData := testPNG(t)
+
+	savedImage, err := stashStore.ImportImage(&file, bytes.NewReader(imageData), "example.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if savedImage.Name != "example.png" || savedImage.MediaType != "image/png" {
+		t.Fatalf("unexpected image metadata: %#v", savedImage)
+	}
+	if len(file.Images) != 1 {
+		t.Fatalf("expected one image, got %d", len(file.Images))
+	}
+	if _, err := os.Stat(stashStore.ImagePath(savedImage)); err != nil {
+		t.Fatalf("expected managed image file: %v", err)
+	}
+
+	loaded, err := stashStore.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(loaded.Images) != 1 || loaded.Images[0].ID != savedImage.ID {
+		t.Fatalf("unexpected loaded images: %#v", loaded.Images)
+	}
+
+	if err := stashStore.DeleteImage(&loaded, savedImage.ID); err != nil {
+		t.Fatal(err)
+	}
+	if len(loaded.Images) != 0 {
+		t.Fatalf("expected image metadata to be deleted: %#v", loaded.Images)
+	}
+	if _, err := os.Stat(stashStore.ImagePath(savedImage)); !os.IsNotExist(err) {
+		t.Fatalf("expected managed image file to be deleted, got %v", err)
+	}
+}
+
+func TestStoreDeduplicatesImagesByContent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Stash", FileName)
+	stashStore := NewAt(path)
+	file := File{Settings: DefaultSettings()}
+	imageData := testPNG(t)
+
+	first, err := stashStore.ImportImage(&file, bytes.NewReader(imageData), "first.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := stashStore.ImportImage(&file, bytes.NewReader(imageData), "second.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if first.ID != second.ID || len(file.Images) != 1 {
+		t.Fatalf("expected duplicate to reuse existing image: %#v", file.Images)
+	}
+}
+
+func TestStoreRejectsInvalidAndOversizedImages(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Stash", FileName)
+	stashStore := NewAt(path)
+	file := File{Settings: DefaultSettings()}
+
+	if _, err := stashStore.ImportImage(&file, bytes.NewBufferString("not an image"), "bad.png"); err == nil {
+		t.Fatal("expected invalid image to be rejected")
+	}
+
+	oversized := bytes.NewReader(make([]byte, MaxImageBytes+1))
+	if _, err := stashStore.ImportImage(&file, oversized, "large.png"); err == nil {
+		t.Fatal("expected oversized image to be rejected")
+	}
+}
+
+func TestStoreClearImagesDoesNotDeleteText(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "Stash", FileName)
+	stashStore := NewAt(path)
+	file := File{
+		Snippets: Add(nil, "keep me"),
+		Settings: DefaultSettings(),
+	}
+
+	if _, err := stashStore.ImportImage(&file, bytes.NewReader(testPNG(t)), "example.png"); err != nil {
+		t.Fatal(err)
+	}
+	if err := stashStore.ClearImages(&file); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(file.Images) != 0 {
+		t.Fatalf("expected images to be cleared: %#v", file.Images)
+	}
+	if len(file.Snippets) != 1 || file.Snippets[0].Text != "keep me" {
+		t.Fatalf("expected text snippets to remain: %#v", file.Snippets)
+	}
+}
+
+func testPNG(t *testing.T) []byte {
+	t.Helper()
+	source := image.NewNRGBA(image.Rect(0, 0, 2, 2))
+	source.Set(0, 0, color.NRGBA{R: 255, A: 255})
+	var data bytes.Buffer
+	if err := png.Encode(&data, source); err != nil {
+		t.Fatal(err)
+	}
+	return data.Bytes()
 }

@@ -2,6 +2,7 @@
 build/
 Stash-macOS.zip
 /stash
+.env
 
 # CMake generated files (in case of in-source builds)
 CMakeFiles/
