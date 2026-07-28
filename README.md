@@ -1,5 +1,7 @@
 # Stash
 
+<!-- TODO: add a screenshot or gif of the app here -->
+
 Stash is a small macOS desktop app for saving text snippets and images that you want to copy again later.
 Paste text or images, drag image files into the app, and copy saved content whenever you need it.
 
