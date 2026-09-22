@@ -51,15 +51,17 @@ Both platform-specific packages have a `//go:build !darwin` stub next to them, s
 
 ## What building this taught me
 
-**Rewriting in Go was cheaper than fixing Qt's distribution story.** The packaged Qt build worked on my machine and broke after install elsewhere. `scripts/package-macos.sh` had grown `install_name_tool` rewrites for each bundled plugin, and it turned out the app binary itself was never rewritten, so the bundle loaded one copy of Qt from inside itself and another from Homebrew. Fixing it properly meant rewriting three frameworks against three possible source paths, because Homebrew splits `qt` and `qtbase` into separate kegs with different prefixes. The Go binary links what it needs statically and the packaging script went back to being a plist and an icon. A GUI framework's distribution model is a feature you're picking, not an implementation detail you deal with later.
+**Rewriting in Go was cheaper than fixing Qt's distribution story.**
+The packaged Qt build worked on my machine and broke after install elsewhere, because the packaging script rewrote every bundled plugin's library paths and never the app binary, so the bundle loaded one copy of Qt from inside itself and another from Homebrew.
+A GUI framework's distribution model is a feature you are picking, not an implementation detail you deal with later.
 
-**`fn` as a hotkey modifier costs you an Accessibility permission.** The original default was `fn + 0`, which sounds harmless and isn't: Carbon's `RegisterEventHotKey` can't see `fn`, so catching it means installing an event tap, which means macOS prompts for Accessibility access and silently does nothing until the user grants it in System Settings. `Control + Option + 0` registers through the ordinary API and needs no permission at all. Changing the default meant migrating existing configs off `fn + 0`, since the people most affected already had the broken one saved.
+**`fn` as a hotkey modifier costs you an Accessibility permission.**
+Carbon's `RegisterEventHotKey` cannot see `fn`, so the `fn + 0` default needed an event tap, which means macOS prompts for Accessibility access and silently does nothing until it is granted.
+`Control + Option + 0` registers through the ordinary API and needs no permission, and changing the default meant migrating the configs of the people already stuck on the broken one.
 
-**Hide-on-close plus a hide/show hotkey leaves no way to quit.** `SetCloseIntercept` hid the window instead of closing it, which is the right behaviour for a menu-bar app and the wrong behaviour for an app with no menu-bar item. There was no visible way out of the process. Removing the intercept means the red button quits and the shortcut toggles, which are two different intentions and now do two different things.
-
-**The clipboard doesn't have "an image type", it has several.** `internal/imageclipboard` asks for `NSPasteboardTypePNG`, falls back to `NSPasteboardTypeTIFF` and converts it, and falls back again to reading file URLs. macOS screenshots arrive as TIFF, so without the second branch the most common way anyone would ever put an image on the clipboard produced nothing. This lives in a `.m` file because Go's clipboard handling is text-only, and it's the one place in the repo where the platform decided the language.
-
-**Renaming an app twice means two legacy read paths and a legacy schema.** `legacyPaths` looks for `QuickDraft/quickdraft.json` and `QuickNote/quicknote.json` before giving up, and the old format's `clips` array is decoded separately and converted to the current `snippets`. The directory name and the file format changed at different times for different reasons, so they get handled separately rather than as one "old version" case. The alternative is an upgrade that quietly starts you with an empty list, which looks exactly like data loss whether or not it technically is.
+**The clipboard doesn't have "an image type", it has several.**
+`internal/imageclipboard` asks for PNG, falls back to TIFF and converts, and falls back again to file URLs, because macOS screenshots arrive as TIFF and without that second branch the most common way anyone puts an image on the clipboard produced nothing.
+It lives in a `.m` file since Go's clipboard handling is text-only, the one place in the repo where the platform picked the language.
 
 ## Quick start
 
