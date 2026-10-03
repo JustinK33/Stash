@@ -5,53 +5,89 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/theme"
+
+	"stash/resources"
 )
+
+var (
+	colorBackground = rgb(247, 248, 250)
+	colorSidebar    = rgb(242, 244, 247)
+	colorSurface    = rgb(255, 255, 255)
+	colorSurfaceHov = rgb(251, 252, 254)
+	colorBorder     = rgb(227, 231, 237)
+	colorBorderHov  = rgb(205, 213, 224)
+	colorText       = rgb(17, 24, 39)
+	colorMuted      = rgb(107, 114, 128)
+	colorFaint      = rgb(148, 155, 168)
+	colorWhite      = rgb(255, 255, 255)
+	colorPrimary    = rgb(37, 99, 235)
+	colorSelection  = rgb(230, 238, 252)
+	colorHover      = rgb(234, 237, 242)
+	colorToast      = rgb(17, 24, 39)
+
+	interRegular  = fyne.NewStaticResource("Inter-Regular.ttf", resources.InterRegular)
+	interSemiBold = fyne.NewStaticResource("Inter-SemiBold.ttf", resources.InterSemiBold)
+)
+
+func rgb(r, g, b uint8) color.NRGBA {
+	return color.NRGBA{R: r, G: g, B: b, A: 255}
+}
 
 type stashTheme struct{}
 
 func (stashTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
 	switch name {
-	case theme.ColorNamePrimary:
-		return color.NRGBA{R: 47, G: 111, B: 237, A: 255}
+	case theme.ColorNamePrimary, theme.ColorNameHyperlink:
+		return colorPrimary
 	case theme.ColorNameBackground:
-		return color.NRGBA{R: 248, G: 249, B: 251, A: 255}
+		return colorBackground
 	case theme.ColorNameButton:
-		return color.NRGBA{R: 255, G: 255, B: 255, A: 255}
+		return colorSurface
 	case theme.ColorNameDisabledButton:
-		return color.NRGBA{R: 232, G: 236, B: 242, A: 255}
+		return rgb(232, 236, 242)
 	case theme.ColorNameDisabled:
-		return color.NRGBA{R: 132, G: 143, B: 158, A: 255}
+		return rgb(138, 146, 160)
 	case theme.ColorNameFocus:
-		return color.NRGBA{R: 47, G: 111, B: 237, A: 90}
+		return color.NRGBA{R: 37, G: 99, B: 235, A: 70}
 	case theme.ColorNameForeground:
-		return color.NRGBA{R: 32, G: 36, B: 42, A: 255}
+		return colorText
 	case theme.ColorNameForegroundOnPrimary:
-		return color.NRGBA{R: 255, G: 255, B: 255, A: 255}
+		return rgb(255, 255, 255)
 	case theme.ColorNameHover:
-		return color.NRGBA{R: 237, G: 241, B: 247, A: 255}
+		return color.NRGBA{R: 15, G: 23, B: 42, A: 14}
 	case theme.ColorNameInputBackground:
-		return color.NRGBA{R: 255, G: 255, B: 255, A: 255}
+		return colorSurface
 	case theme.ColorNameInputBorder:
-		return color.NRGBA{R: 196, G: 205, B: 218, A: 255}
+		return colorBorder
 	case theme.ColorNamePlaceHolder:
-		return color.NRGBA{R: 112, G: 122, B: 136, A: 255}
+		return rgb(148, 155, 168)
 	case theme.ColorNamePressed:
-		return color.NRGBA{R: 221, G: 229, B: 240, A: 255}
+		return color.NRGBA{R: 15, G: 23, B: 42, A: 26}
 	case theme.ColorNameScrollBar:
-		return color.NRGBA{R: 174, G: 185, B: 199, A: 255}
+		return color.NRGBA{R: 15, G: 23, B: 42, A: 70}
 	case theme.ColorNameScrollBarBackground:
-		return color.NRGBA{R: 238, G: 242, B: 247, A: 255}
+		return color.NRGBA{A: 0}
+	case theme.ColorNameSelection:
+		return color.NRGBA{R: 37, G: 99, B: 235, A: 50}
 	case theme.ColorNameSeparator:
-		return color.NRGBA{R: 218, G: 224, B: 232, A: 255}
+		return colorBorder
 	case theme.ColorNameShadow:
-		return color.NRGBA{R: 15, G: 23, B: 42, A: 28}
+		return color.NRGBA{R: 15, G: 23, B: 42, A: 18}
+	case theme.ColorNameOverlayBackground, theme.ColorNameMenuBackground:
+		return colorSurface
 	default:
 		return theme.DefaultTheme().Color(name, theme.VariantLight)
 	}
 }
 
 func (stashTheme) Font(style fyne.TextStyle) fyne.Resource {
-	return theme.DefaultTheme().Font(style)
+	if style.Monospace || style.Symbol {
+		return theme.DefaultTheme().Font(style)
+	}
+	if style.Bold {
+		return interSemiBold
+	}
+	return interRegular
 }
 
 func (stashTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
@@ -59,5 +95,51 @@ func (stashTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
 }
 
 func (stashTheme) Size(name fyne.ThemeSizeName) float32 {
-	return theme.DefaultTheme().Size(name)
+	switch name {
+	case theme.SizeNameText:
+		return 14
+	case theme.SizeNameCaptionText:
+		return 12
+	case theme.SizeNameHeadingText:
+		return 26
+	case theme.SizeNameSubHeadingText:
+		return 16
+	case theme.SizeNamePadding:
+		return 6
+	case theme.SizeNameInnerPadding:
+		return 10
+	case theme.SizeNameInputRadius:
+		return 8
+	case theme.SizeNameSelectionRadius:
+		return 6
+	case theme.SizeNameInputBorder:
+		return 1
+	case theme.SizeNameLineSpacing:
+		return 6
+	case theme.SizeNameScrollBarRadius:
+		return 4
+	default:
+		return theme.DefaultTheme().Size(name)
+	}
+}
+
+// borderless hides the input chrome so an entry can sit inside a custom surface.
+type borderless struct{ stashTheme }
+
+func (t borderless) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
+	switch name {
+	case theme.ColorNameInputBackground, theme.ColorNameInputBorder, theme.ColorNameFocus, theme.ColorNameScrollBar:
+		return color.Transparent
+	}
+	return t.stashTheme.Color(name, variant)
+}
+
+func (t borderless) Size(name fyne.ThemeSizeName) float32 {
+	switch name {
+	case theme.SizeNameText:
+		return 13
+	case theme.SizeNameInnerPadding:
+		return 4
+	}
+	return t.stashTheme.Size(name)
 }

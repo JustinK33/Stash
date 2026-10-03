@@ -10,20 +10,31 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 
+	"stash/internal/appearance"
 	"stash/internal/hotkey"
 	"stash/internal/imageclipboard"
 	"stash/internal/keybind"
 	"stash/internal/store"
+	"stash/resources"
+)
+
+type page int
+
+const (
+	pageText page = iota
+	pageImages
 )
 
 type stashApp struct {
@@ -33,16 +44,24 @@ type stashApp struct {
 	images   []store.Image
 	settings store.Settings
 
-	input          *widget.Entry
-	textList       *fyne.Container
-	imageList      *fyne.Container
-	textCount      *widget.Label
-	imageCount     *widget.Label
-	tabs           *container.AppTabs
-	imageTab       *container.TabItem
-	shortcutButton *widget.Button
-	status         *widget.Label
-	hidden         bool
+	input         *saveEntry
+	search        *widget.Entry
+	charCount     *canvas.Text
+	textList      *fyne.Container
+	imageList     *fyne.Container
+	textCount     *canvas.Text
+	imageCount    *canvas.Text
+	shortcutBadge *shortcutBadge
+	sidebar       *sidebar
+	navText       *navItem
+	navImages     *navItem
+	pages         map[page]fyne.CanvasObject
+	page          page
+	pageFade      *canvas.Rectangle
+	fadeAnim      *fyne.Animation
+	toaster       *toaster
+	expanded      map[string]bool
+	hidden        bool
 }
 
 func main() {
@@ -58,125 +77,169 @@ func main() {
 
 	fyneApp := app.NewWithID("com.justink33.stash")
 	fyneApp.Settings().SetTheme(stashTheme{})
+	appIcon := fyne.NewStaticResource("stash.png", resources.AppIcon)
+	fyneApp.SetIcon(appIcon)
 
 	window := fyneApp.NewWindow("Stash")
-	window.Resize(fyne.NewSize(620, 700))
+	window.SetIcon(appIcon)
+	window.Resize(fyne.NewSize(980, 720))
 
-	ui := &stashApp{
-		window:     window,
-		store:      stashStore,
-		snippets:   file.Snippets,
-		images:     file.Images,
-		settings:   file.Settings,
-		input:      widget.NewMultiLineEntry(),
-		textList:   container.NewVBox(),
-		imageList:  container.NewVBox(),
-		textCount:  widget.NewLabel("0 saved"),
-		imageCount: widget.NewLabel("0 saved"),
-		status:     widget.NewLabel("Ready"),
-	}
-
-	window.SetContent(ui.build())
-	window.SetOnDropped(ui.handleDropped)
-	window.Canvas().AddShortcut(&fyne.ShortcutPaste{}, func(fyne.Shortcut) {
-		if ui.tabs.Selected() == ui.imageTab {
-			ui.pasteImage()
-		}
-	})
+	ui := newStashApp(window, stashStore, file)
+	fyneApp.Lifecycle().SetOnStarted(appearance.UseLight)
 	fyneApp.Lifecycle().SetOnEnteredForeground(func() {
 		fyne.Do(ui.show)
 	})
-	ui.refreshTextList()
-	ui.refreshImageList()
 
 	if err := hotkey.Register(ui.settings.Shortcut, func() {
 		fyne.Do(ui.toggle)
 	}); err != nil {
-		ui.status.SetText("Shortcut unavailable")
+		ui.toast("Shortcut unavailable")
 	}
 	defer hotkey.Unregister()
 
 	window.ShowAndRun()
 }
 
-func (ui *stashApp) build() fyne.CanvasObject {
-	ui.shortcutButton = widget.NewButton(ui.settings.Shortcut.Display(), ui.openShortcutDialog)
-	header := container.NewHBox(
-		widget.NewLabelWithStyle("Stash", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-		layout.NewSpacer(),
-		ui.shortcutButton,
-	)
+func newStashApp(window fyne.Window, stashStore *store.Store, file store.File) *stashApp {
+	ui := &stashApp{
+		window:     window,
+		store:      stashStore,
+		snippets:   file.Snippets,
+		images:     file.Images,
+		settings:   file.Settings,
+		input:      newSaveEntry(),
+		search:     widget.NewEntry(),
+		charCount:  newText("", 11, colorMuted, false),
+		textList:   container.New(layout.NewCustomPaddedVBoxLayout(8)),
+		imageList:  container.NewVBox(),
+		textCount:  newText("0 saved", 13, colorMuted, false),
+		imageCount: newText("0 saved", 13, colorMuted, false),
+		toaster:    newToaster(),
+		expanded:   map[string]bool{},
+	}
+	ui.input.onSave = ui.saveSnippet
 
-	textTab := container.NewTabItem("Text", ui.buildTextTab())
-	ui.imageTab = container.NewTabItem("Images", ui.buildImageTab())
-	ui.tabs = container.NewAppTabs(textTab, ui.imageTab)
-	ui.tabs.SetTabLocation(container.TabLocationTop)
-
-	content := container.NewBorder(header, ui.status, nil, nil, ui.tabs)
-	return container.NewPadded(content)
+	window.SetContent(ui.build())
+	window.SetOnDropped(ui.handleDropped)
+	ui.addShortcuts()
+	ui.refreshTextList()
+	ui.refreshImageList()
+	return ui
 }
 
-func (ui *stashApp) buildTextTab() fyne.CanvasObject {
-	ui.input.SetPlaceHolder("Paste text here to save it")
-	ui.input.Wrapping = fyne.TextWrapWord
-	ui.input.SetMinRowsVisible(6)
+func (ui *stashApp) build() fyne.CanvasObject {
+	ui.shortcutBadge = newShortcutBadge(ui.settings.Shortcut.Display(), ui.openShortcutDialog)
 
-	saveButton := widget.NewButton("Save", ui.saveSnippet)
-	saveButton.Importance = widget.HighImportance
-	clearButton := widget.NewButton("Clear Input", func() {
-		ui.input.SetText("")
-		ui.status.SetText("Ready")
-	})
-	clearAllButton := widget.NewButton("Clear Text", func() {
-		ui.snippets = nil
-		if err := ui.save(); err != nil {
-			return
+	ui.navText = newNavItem("Text", "text", func() { ui.selectPage(pageText) })
+	ui.navImages = newNavItem("Images", "image", func() { ui.selectPage(pageImages) })
+	settings := newNavItem("Settings", "settings", ui.openShortcutDialog)
+	ui.sidebar = newSidebar(ui.search, []*navItem{ui.navText, ui.navImages}, settings, ui.focusSearch)
+
+	ui.search.OnChanged = func(string) {
+		if ui.page != pageText {
+			ui.selectPage(pageText)
 		}
 		ui.refreshTextList()
-		ui.status.SetText("Text cleared")
-	})
+	}
+	ui.search.OnSubmitted = func(string) { ui.window.Canvas().Focus(ui.input) }
 
-	actions := container.NewHBox(saveButton, clearButton, layout.NewSpacer(), clearAllButton)
-	listHeader := container.NewHBox(
-		widget.NewLabelWithStyle("Saved text", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-		layout.NewSpacer(),
-		ui.textCount,
-	)
-	return container.NewBorder(
-		container.NewVBox(ui.input, actions, listHeader),
-		nil,
-		nil,
-		nil,
-		container.NewVScroll(ui.textList),
-	)
+	ui.pages = map[page]fyne.CanvasObject{
+		pageText:   ui.buildTextPage(),
+		pageImages: ui.buildImagePage(),
+	}
+	ui.pages[pageImages].Hide()
+	ui.pageFade = canvas.NewRectangle(colorBackground)
+	ui.pageFade.Hide()
+	ui.navText.setSelected(true)
+
+	content := container.NewStack(ui.pages[pageText], ui.pages[pageImages], ui.pageFade)
+	shell := container.New(&shellLayout{sidebar: ui.sidebar}, ui.sidebar.root, content)
+	return container.NewStack(shell, ui.toaster.layer)
 }
 
-func (ui *stashApp) buildImageTab() fyne.CanvasObject {
-	pasteButton := widget.NewButton("Paste Image", ui.pasteImage)
-	pasteButton.Importance = widget.HighImportance
-	clearImagesButton := widget.NewButton("Clear Images", ui.clearImages)
+func (ui *stashApp) addShortcuts() {
+	canvas := ui.window.Canvas()
+	canvas.AddShortcut(&fyne.ShortcutPaste{}, func(fyne.Shortcut) {
+		if ui.page == pageImages {
+			ui.pasteImage()
+		}
+	})
+	canvas.AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyK, Modifier: fyne.KeyModifierShortcutDefault}, func(fyne.Shortcut) {
+		ui.focusSearch()
+	})
+	canvas.AddShortcut(&desktop.CustomShortcut{KeyName: fyne.Key1, Modifier: fyne.KeyModifierShortcutDefault}, func(fyne.Shortcut) {
+		ui.selectPage(pageText)
+	})
+	canvas.AddShortcut(&desktop.CustomShortcut{KeyName: fyne.Key2, Modifier: fyne.KeyModifierShortcutDefault}, func(fyne.Shortcut) {
+		ui.selectPage(pageImages)
+	})
+}
 
-	instructions := widget.NewLabel("Drag PNG, JPEG, or GIF files here, or paste an image with Command + V.")
-	instructions.Wrapping = fyne.TextWrapWord
-	actions := container.NewHBox(pasteButton, layout.NewSpacer(), clearImagesButton)
-	listHeader := container.NewHBox(
-		widget.NewLabelWithStyle("Saved images", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-		layout.NewSpacer(),
-		ui.imageCount,
-	)
-	return container.NewBorder(
-		container.NewVBox(instructions, actions, listHeader),
-		nil,
-		nil,
-		nil,
-		container.NewVScroll(ui.imageList),
-	)
+func (ui *stashApp) focusSearch() {
+	ui.sidebar.setExpanded(true)
+	ui.window.Canvas().Focus(ui.search)
+}
+
+func (ui *stashApp) selectPage(next page) {
+	if ui.search.Text == "" {
+		ui.sidebar.setExpanded(false)
+	}
+	if next == ui.page {
+		return
+	}
+	ui.pages[ui.page].Hide()
+	ui.page = next
+	ui.pages[next].Show()
+	ui.navText.setSelected(next == pageText)
+	ui.navImages.setSelected(next == pageImages)
+
+	// A quick fade from the background color softens the page swap.
+	if ui.fadeAnim != nil {
+		ui.fadeAnim.Stop()
+	}
+	ui.pageFade.Show()
+	ui.fadeAnim = fyne.NewAnimation(150*time.Millisecond, func(progress float32) {
+		ui.pageFade.FillColor = color.NRGBA{R: colorBackground.R, G: colorBackground.G, B: colorBackground.B, A: uint8(255 * (1 - progress))}
+		ui.pageFade.Refresh()
+		if progress == 1 {
+			ui.pageFade.Hide()
+		}
+	})
+	ui.fadeAnim.Curve = fyne.AnimationEaseOut
+	ui.fadeAnim.Start()
+}
+
+func (ui *stashApp) toast(message string) {
+	ui.toaster.show(message)
+}
+
+// saveEntry is the multiline input, where Command + Enter saves.
+type saveEntry struct {
+	widget.Entry
+	onSave func()
+}
+
+func newSaveEntry() *saveEntry {
+	e := &saveEntry{}
+	e.MultiLine = true
+	e.Wrapping = fyne.TextWrapWord
+	e.ExtendBaseWidget(e)
+	return e
+}
+
+func (e *saveEntry) TypedShortcut(shortcut fyne.Shortcut) {
+	if custom, ok := shortcut.(*desktop.CustomShortcut); ok && custom.Modifier == fyne.KeyModifierShortcutDefault &&
+		(custom.KeyName == fyne.KeyReturn || custom.KeyName == fyne.KeyEnter) {
+		e.onSave()
+		return
+	}
+	e.Entry.TypedShortcut(shortcut)
 }
 
 func (ui *stashApp) saveSnippet() {
 	text := strings.TrimSpace(ui.input.Text)
 	if text == "" {
-		ui.status.SetText("Nothing to save")
+		ui.toast("Nothing to save")
 		return
 	}
 
@@ -186,12 +249,12 @@ func (ui *stashApp) saveSnippet() {
 		return
 	}
 	ui.refreshTextList()
-	ui.status.SetText("Saved")
+	ui.toast("Saved")
 }
 
 func (ui *stashApp) copySnippet(text string) {
-	ui.window.Clipboard().SetContent(text)
-	ui.status.SetText("Copied")
+	fyne.CurrentApp().Clipboard().SetContent(text)
+	ui.toast("Copied to clipboard")
 }
 
 func (ui *stashApp) deleteSnippet(text string) {
@@ -200,50 +263,13 @@ func (ui *stashApp) deleteSnippet(text string) {
 		return
 	}
 	ui.refreshTextList()
-	ui.status.SetText("Deleted")
-}
-
-func (ui *stashApp) refreshTextList() {
-	ui.textList.Objects = nil
-
-	if len(ui.snippets) == 0 {
-		empty := widget.NewLabel("No saved text yet")
-		empty.Alignment = fyne.TextAlignCenter
-		ui.textList.Add(container.NewPadded(empty))
-	} else {
-		for _, snippet := range ui.snippets {
-			ui.textList.Add(ui.snippetRow(snippet))
-		}
-	}
-
-	ui.textCount.SetText(fmt.Sprintf("%d saved", len(ui.snippets)))
-	ui.textList.Refresh()
-}
-
-func (ui *stashApp) snippetRow(snippet store.Snippet) fyne.CanvasObject {
-	text := widget.NewLabel(snippet.Text)
-	text.Wrapping = fyne.TextWrapWord
-
-	copyButton := widget.NewButton("Copy", func() {
-		ui.copySnippet(snippet.Text)
-	})
-	deleteButton := widget.NewButton("Delete", func() {
-		ui.deleteSnippet(snippet.Text)
-	})
-
-	return separatedRow(container.NewBorder(
-		nil,
-		nil,
-		nil,
-		container.NewHBox(copyButton, deleteButton),
-		text,
-	))
+	ui.toast("Deleted")
 }
 
 func (ui *stashApp) pasteImage() {
 	data, err := imageclipboard.ReadPNG()
 	if err != nil {
-		ui.status.SetText(err.Error())
+		ui.toast(err.Error())
 		return
 	}
 	ui.importImage(bytes.NewReader(data), "Pasted image.png")
@@ -257,7 +283,7 @@ func (ui *stashApp) handleDropped(_ fyne.Position, uris []fyne.URI) {
 	for _, uri := range uris {
 		reader, err := storage.Reader(uri)
 		if err != nil {
-			ui.status.SetText("Could not read " + uri.Name())
+			ui.toast("Could not read " + uri.Name())
 			continue
 		}
 		if ui.importImage(reader, uri.Name()) {
@@ -266,8 +292,8 @@ func (ui *stashApp) handleDropped(_ fyne.Position, uris []fyne.URI) {
 		_ = reader.Close()
 	}
 	if imported > 0 {
-		ui.tabs.Select(ui.imageTab)
-		ui.status.SetText(fmt.Sprintf("Imported %d image(s)", imported))
+		ui.selectPage(pageImages)
+		ui.toast(fmt.Sprintf("Imported %d image(s)", imported))
 	}
 }
 
@@ -275,77 +301,39 @@ func (ui *stashApp) importImage(reader io.Reader, name string) bool {
 	file := ui.currentFile()
 	_, err := ui.store.ImportImage(&file, reader, name)
 	if err != nil {
-		ui.status.SetText(err.Error())
+		ui.toast(err.Error())
 		return false
 	}
 	ui.images = file.Images
 	ui.refreshImageList()
-	ui.status.SetText("Image saved")
+	ui.toast("Image saved")
 	return true
 }
 
-func (ui *stashApp) refreshImageList() {
-	ui.imageList.Objects = nil
-	if len(ui.images) == 0 {
-		empty := widget.NewLabel("No saved images yet")
-		empty.Alignment = fyne.TextAlignCenter
-		ui.imageList.Add(container.NewPadded(empty))
-	} else {
-		for _, savedImage := range ui.images {
-			ui.imageList.Add(ui.imageRow(savedImage))
-		}
-	}
-	ui.imageCount.SetText(fmt.Sprintf("%d saved", len(ui.images)))
-	ui.imageList.Refresh()
-}
-
-func (ui *stashApp) imageRow(savedImage store.Image) fyne.CanvasObject {
-	imagePath := ui.store.ImagePath(savedImage)
-	thumbnail := canvas.NewImageFromFile(imagePath)
-	thumbnail.FillMode = canvas.ImageFillContain
-	thumbnail.SetMinSize(fyne.NewSize(180, 130))
-
-	name := widget.NewLabelWithStyle(savedImage.Name, fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	details := widget.NewLabel(fmt.Sprintf(
-		"%d × %d  •  %s",
-		savedImage.Width,
-		savedImage.Height,
-		formatBytes(savedImage.Size),
-	))
-	copyButton := widget.NewButton("Copy", func() {
-		ui.copyImage(savedImage)
-	})
-	deleteButton := widget.NewButton("Delete", func() {
-		ui.deleteImage(savedImage)
-	})
-	metadata := container.NewVBox(name, details, layout.NewSpacer(), container.NewHBox(copyButton, deleteButton))
-
-	return separatedRow(container.NewBorder(nil, nil, nil, metadata, thumbnail))
-}
-
-func (ui *stashApp) copyImage(savedImage store.Image) {
+func (ui *stashApp) copyImage(savedImage store.Image) bool {
 	file, err := os.Open(ui.store.ImagePath(savedImage))
 	if err != nil {
-		ui.status.SetText("Could not read saved image")
-		return
+		ui.toast("Could not read saved image")
+		return false
 	}
 	defer file.Close()
 
 	decoded, _, err := image.Decode(file)
 	if err != nil {
-		ui.status.SetText("Saved image is invalid")
-		return
+		ui.toast("Saved image is invalid")
+		return false
 	}
 	var data bytes.Buffer
 	if err := png.Encode(&data, decoded); err != nil {
-		ui.status.SetText("Could not prepare image")
-		return
+		ui.toast("Could not prepare image")
+		return false
 	}
 	if err := imageclipboard.WritePNG(data.Bytes()); err != nil {
-		ui.status.SetText(err.Error())
-		return
+		ui.toast(err.Error())
+		return false
 	}
-	ui.status.SetText("Image copied")
+	ui.toast("Image copied")
+	return true
 }
 
 func (ui *stashApp) deleteImage(savedImage store.Image) {
@@ -354,10 +342,10 @@ func (ui *stashApp) deleteImage(savedImage store.Image) {
 	ui.images = file.Images
 	ui.refreshImageList()
 	if err != nil {
-		ui.status.SetText("Image removed, but its file could not be deleted")
+		ui.toast("Image removed, but its file could not be deleted")
 		return
 	}
-	ui.status.SetText("Image deleted")
+	ui.toast("Image deleted")
 }
 
 func (ui *stashApp) clearImages() {
@@ -366,23 +354,10 @@ func (ui *stashApp) clearImages() {
 	ui.images = file.Images
 	ui.refreshImageList()
 	if err != nil {
-		ui.status.SetText("Images cleared, but some files could not be deleted")
+		ui.toast("Images cleared, but some files could not be deleted")
 		return
 	}
-	ui.status.SetText("Images cleared")
-}
-
-func separatedRow(content fyne.CanvasObject) fyne.CanvasObject {
-	line := canvas.NewLine(color.NRGBA{R: 220, G: 225, B: 232, A: 255})
-	line.StrokeWidth = 1
-	return container.NewVBox(content, line)
-}
-
-func formatBytes(size int64) string {
-	if size >= 1024*1024 {
-		return fmt.Sprintf("%.1f MB", float64(size)/(1024*1024))
-	}
-	return fmt.Sprintf("%.1f KB", float64(size)/1024)
+	ui.toast("Images cleared")
 }
 
 func (ui *stashApp) currentFile() store.File {
@@ -395,7 +370,7 @@ func (ui *stashApp) currentFile() store.File {
 
 func (ui *stashApp) save() error {
 	if err := ui.store.Save(ui.currentFile()); err != nil {
-		ui.status.SetText("Save failed")
+		ui.toast("Save failed")
 		return err
 	}
 	return nil
@@ -448,11 +423,11 @@ func (ui *stashApp) openShortcutDialog() {
 			}
 
 			ui.settings.Shortcut = binding
-			ui.shortcutButton.SetText(binding.Display())
+			ui.shortcutBadge.SetText(binding.Display())
 			if err := ui.save(); err != nil {
 				return
 			}
-			ui.status.SetText("Shortcut saved")
+			ui.toast("Shortcut saved")
 		},
 		OnCancel:   func() {},
 		SubmitText: "Save Shortcut",
@@ -468,11 +443,11 @@ func (ui *stashApp) openShortcutDialog() {
 			return
 		}
 		ui.settings.Shortcut = binding
-		ui.shortcutButton.SetText(binding.Display())
+		ui.shortcutBadge.SetText(binding.Display())
 		if err := ui.save(); err != nil {
 			return
 		}
-		ui.status.SetText("Shortcut reset")
+		ui.toast("Shortcut reset")
 	})
 
 	dialog.ShowCustom("Change Shortcut", "Close", container.NewVBox(form, resetButton), ui.window)
