@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  release-macos:
-    name: Build and release macOS app
+  build-macos:
+    name: Build macOS app
     runs-on: macos-latest
 
     steps:
@@ -41,8 +41,55 @@ jobs:
           name: Stash-macOS
           path: Stash-macOS.zip
 
+  build-windows:
+    name: Build Windows app
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Test
+        run: go test ./...
+
+      - name: Package app
+        shell: pwsh
+        env:
+          VERSION: ${{ github.ref_name }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          $env:VERSION = $env:VERSION.TrimStart("v")
+          ./scripts/package-windows.ps1 Stash-Windows.zip
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stash-Windows
+          path: Stash-Windows.zip
+
+  publish:
+    name: Publish GitHub Release
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: Stash-macOS.zip
+          files: |
+            Stash-macOS.zip
+            Stash-Windows.zip
           generate_release_notes: true

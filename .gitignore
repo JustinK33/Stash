@@ -1,6 +1,8 @@
 # Build output
 build/
 Stash-macOS.zip
+Stash-Windows.zip
+*.exe
 /stash
 .env
 

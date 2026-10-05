@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 
+	"stash/internal/keybind"
 	"stash/resources"
 )
 
@@ -154,7 +155,7 @@ func newSidebar(search *widget.Entry, nav []*navItem, settings *navItem, onSearc
 
 	search.SetPlaceHolder("Search saved text...")
 	searchIcon := widget.NewIcon(icon("search", colorMuted))
-	hint := container.NewStack(roundedRect(colorSidebar, colorBorder, 5), inset(newText("⌘ K", 11, colorMuted, false), 3))
+	hint := container.NewStack(roundedRect(colorSidebar, colorBorder, 5), inset(newText(keybind.Labels().Shortcut+" K", 11, colorMuted, false), 3))
 	searchBg := roundedRect(colorSurface, colorBorder, 8)
 	searchBg.SetMinSize(fyne.NewSize(0, 36))
 	s.searchBox = container.NewStack(

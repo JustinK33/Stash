@@ -20,10 +20,17 @@ func TestBindingDisplay(t *testing.T) {
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			if got := testCase.binding.Display(); got != testCase.want {
+			if got := testCase.binding.display(labelsFor("darwin")); got != testCase.want {
 				t.Errorf("got %q, want %q", got, testCase.want)
 			}
 		})
+	}
+}
+
+func TestBindingDisplayWindows(t *testing.T) {
+	binding := Binding{Key: "A", Shift: true, Option: true, Control: true, Command: true}
+	if got, want := binding.display(labelsFor("windows")), "Win + Ctrl + Alt + Shift + A"; got != want {
+		t.Errorf("got %q, want %q", got, want)
 	}
 }
 

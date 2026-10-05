@@ -37,3 +37,35 @@ jobs:
         with:
           name: Stash-macOS
           path: Stash-macOS.zip
+
+  build-test-package-windows:
+    name: Build, test, and package Windows app
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build ./cmd/stash
+
+      - name: Test
+        run: go test ./...
+
+      - name: Package downloadable app
+        shell: pwsh
+        run: ./scripts/package-windows.ps1 Stash-Windows.zip
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stash-Windows
+          path: Stash-Windows.zip

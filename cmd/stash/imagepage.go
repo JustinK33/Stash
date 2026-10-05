@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
+	"stash/internal/keybind"
 	"stash/internal/store"
 )
 
@@ -24,7 +25,7 @@ func (ui *stashApp) buildImagePage() fyne.CanvasObject {
 	dropIcon := container.NewGridWrap(fyne.NewSize(36, 36), widget.NewIcon(icon("image", colorPrimary)))
 	title := newText("Drop images here", 15, colorText, true)
 	formats := newText("PNG, JPEG, or GIF", 13, colorMuted, false)
-	hint := newText("or press ⌘ V", 12, colorMuted, false)
+	hint := newText("or press "+keybind.Labels().Shortcut+" V", 12, colorMuted, false)
 	dropZone := surface(container.NewCenter(container.New(layout.NewCustomPaddedVBoxLayout(8),
 		container.NewCenter(dropIcon),
 		container.NewCenter(title),

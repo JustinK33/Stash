@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -85,6 +86,12 @@ func main() {
 	window.Resize(fyne.NewSize(980, 720))
 
 	ui := newStashApp(window, stashStore, file)
+	// Windows has no Dock icon, so a hidden window would be unreachable
+	// without the shortcut. The tray gives it a way back.
+	if desk, ok := fyneApp.(desktop.App); ok && runtime.GOOS == "windows" {
+		desk.SetSystemTrayIcon(appIcon)
+		desk.SetSystemTrayMenu(fyne.NewMenu("Stash", fyne.NewMenuItem("Show Stash", ui.show)))
+	}
 	fyneApp.Lifecycle().SetOnStarted(appearance.UseLight)
 	fyneApp.Lifecycle().SetOnEnteredForeground(func() {
 		fyne.Do(ui.show)
@@ -213,7 +220,7 @@ func (ui *stashApp) toast(message string) {
 	ui.toaster.show(message)
 }
 
-// saveEntry is the multiline input, where Command + Enter saves.
+// saveEntry is the multiline input, where Command (Ctrl on Windows) + Enter saves.
 type saveEntry struct {
 	widget.Entry
 	onSave func()
@@ -378,17 +385,18 @@ func (ui *stashApp) save() error {
 
 func (ui *stashApp) openShortcutDialog() {
 	current := ui.settings.Shortcut.Normalize()
+	labels := keybind.Labels()
 
 	keySelect := widget.NewSelect(keybind.Keys(), nil)
 	keySelect.SetSelected(current.Key)
 
-	commandCheck := widget.NewCheck("Command", nil)
+	commandCheck := widget.NewCheck(labels.Command, nil)
 	commandCheck.SetChecked(current.Command)
-	controlCheck := widget.NewCheck("Control", nil)
+	controlCheck := widget.NewCheck(labels.Control, nil)
 	controlCheck.SetChecked(current.Control)
-	optionCheck := widget.NewCheck("Option", nil)
+	optionCheck := widget.NewCheck(labels.Option, nil)
 	optionCheck.SetChecked(current.Option)
-	shiftCheck := widget.NewCheck("Shift", nil)
+	shiftCheck := widget.NewCheck(labels.Shift, nil)
 	shiftCheck.SetChecked(current.Shift)
 
 	form := &widget.Form{
@@ -434,7 +442,7 @@ func (ui *stashApp) openShortcutDialog() {
 		CancelText: "Cancel",
 	}
 
-	resetButton := widget.NewButton("Reset to Control + Option + 0", func() {
+	resetButton := widget.NewButton("Reset to "+keybind.Default().Display(), func() {
 		binding := keybind.Default()
 		if err := hotkey.Register(binding, func() {
 			fyne.Do(ui.toggle)
